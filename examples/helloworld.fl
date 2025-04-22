@@ -1,0 +1,7 @@
+fun main() {
+    extern putchar;
+    var a;
+    set(a, 69);
+    putchar(a);
+    ret 0;
+}
