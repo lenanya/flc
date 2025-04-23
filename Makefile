@@ -1,15 +1,18 @@
-all: build/flc
+all: build/flc build/generation
 
-CFLAGS = -I./include
+CFLAGS = -I./include -ggdb
 
-build/flc: src/main.c include/flc.h build/flc.o
-	cc src/main.c $(CFLAGS) build/flc.o -I./include -o build/flc
+build/flc: src/main.c include/flc.h
+	cc src/main.c $(CFLAGS) -I./include -o build/flc
 
-build/flc.o: src/flc.c include/flc.h 
-	cc src/flc.c $(CFLAGS) -c -o build/flc.o
+build/generation.S: build/flc
+	./build/flc > ./build/generation.S 
 
-run: build/flc
-	./build/flc
+build/generation: build/generation.S 
+	cc build/generation.S -no-pie -o build/generation
+
+build/test: src/test.S
+	cc src/test.S -o build/test -no-pie -ggdb
 
 clean: 
 	rm build/*
