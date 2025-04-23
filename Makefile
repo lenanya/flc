@@ -1,15 +1,15 @@
-all: build/flc build/generation
+all: build/flc
 
 CFLAGS = -I./include -ggdb
 
-build/flc: src/main.c include/flc.h
+build/flc: src/main.c include/flc.h include/lexer.h include/parser.h
 	cc src/main.c $(CFLAGS) -I./include -o build/flc
 
-build/generation.S: build/flc
-	./build/flc > ./build/generation.S 
+build/helloworld.S: build/flc examples/helloworld.fl
+	./build/flc examples/helloworld.fl
 
-build/generation: build/generation.S 
-	cc build/generation.S -no-pie -o build/generation
+build/helloworld: build/helloworld.S 
+	cc build/helloworld.S -no-pie -o build/helloworld
 
 build/test: src/test.S
 	cc src/test.S -o build/test -no-pie -ggdb

@@ -5,23 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
-
-typedef enum TokenType {
-    TT_INT_LIT,
-    TT_SYMBOL,
-    TT_PUNCTUATION,
-} TokenType;
-
-typedef union TokenValue {
-    int TV_int_lit;
-    char* TV_symbol;
-    char TV_punct;
-} TokenValue;
-
-typedef struct Token {
-    TokenType token_type;
-    TokenValue token_value;
-} Token;
+#include <inttypes.h>
 
 typedef enum ExpressionType {
     ET_INT_LIT,
@@ -30,7 +14,7 @@ typedef enum ExpressionType {
 } ExpressionType;
 
 typedef union ExpressionValue {
-    int intlit;
+    int64_t intlit;
     char* function_name;
     char* variable_name;
 } ExpressionValue;
@@ -109,5 +93,16 @@ int program_get_function_index(Program *program, char* function_name) {
     }
     return -1;
 }
+
+typedef struct StringBuilder {
+    char* items;
+    size_t count;
+    size_t capacity;
+} StringBuilder;
+ 
+#define array_len(xs) (sizeof(xs)/sizeof(xs[0]))
+
+#define da_free(da) free((da).items)
+#define sb_append_null(da) da_append((da), '\0');
 
 #endif // INCLUDE_FLC_H

@@ -1,4 +1,5 @@
 #include "flc.h"
+#include "parser.h"
 
 void compile_time_error(char* error) {
     fprintf(stderr, "[ERROR] %s\n", error);
@@ -110,44 +111,72 @@ int compile_program(Program* program) {
     }
 }
 
-int main(void) {
+char* sample =  "fun main() {\n"\
+                "   set(a, 69);\n"\
+                "   putchar(a);\n"\
+                "   putchar(10);\n"\
+                "   ret(0);\n"\
+                "}";
+
+int main(int argc, char** argv) {
+    //if (argc < 2) {
+    //    fprintf(stderr, "[ERROR] Need to supply .fl file");
+    //    return 1;
+    //}
+    //char* fl_file = argv[1];
+
+    Lexer lex = {0};
+    create_lexer(&lex, sample);
+    Token t = {0};
+
+    for (size_t i = 0; i < lex.tokens.count; ++i) {
+        if (lex.tokens.items[i].token_type == TT_SYMBOL) {
+            printf("SYMBOL: `%s`\n", lex.tokens.items[i].token_value.TV_symbol);
+        } else {
+            printf("%s\n", TT_VIS[lex.tokens.items[i].token_type]);
+        }
+    }
+
+    expect_token_type(get_token(&lex), TT_INT_LIT);
 
     // hardcoded program for now, since no lexing/parsing yet
-    Program p = {0};
+    //Program p = {0};
 
-    Function f = {0};
-    f.name = "main";
+    //Function f = {0};
+    //f.name = "main";
 
-    Expression expr1 = {0};
-    expr1.expression_type = ET_FUNCTION_CALL;
-    expr1.expression_value.function_name = "set";
-    Expression fe1 = {
-        .expression_type = ET_VARIABLE,
-        .expression_value.variable_name = "a",
-    };
-    Expression fe2 = {
-        .expression_type = ET_INT_LIT,
-        .expression_value.intlit = 69,
-    };
+    //Expression expr1 = {0};
+    //expr1.expression_type = ET_FUNCTION_CALL;
+    //expr1.expression_value.function_name = "set";
+    //Expression fe1 = {
+    //    .expression_type = ET_VARIABLE,
+    //    .expression_value.variable_name = "a",
+    //};
+    //Expression fe2 = {
+    //    .expression_type = ET_INT_LIT,
+    //    .expression_value.intlit = 69,
+    //};
 
-    da_append(&(expr1.func_args), fe1);
-    da_append(&(expr1.func_args), fe2);
-    da_append(&f, expr1);
+    //da_append(&(expr1.func_args), fe1);
+    //da_append(&(expr1.func_args), fe2);
+    //da_append(&f, expr1);
 
-    Expression expr2 = {0};
-    expr2.expression_type = ET_FUNCTION_CALL;
-    expr2.expression_value.function_name = "putchar";
-    Expression fe21 = {
-        .expression_type = ET_VARIABLE,
-        .expression_value.variable_name = "a",
-    };
-    da_append(&(expr2.func_args), fe21);
-    da_append(&f, expr2);
+    //Expression expr2 = {0};
+    //expr2.expression_type = ET_FUNCTION_CALL;
+    //expr2.expression_value.function_name = "putchar";
+    //Expression fe21 = {
+    //    .expression_type = ET_VARIABLE,
+    //    .expression_value.variable_name = "a",
+    //};
+    //da_append(&(expr2.func_args), fe21);
+    //da_append(&f, expr2);
 
 
-    da_append(&p, f);
+    //da_append(&p, f);
 
-    compile_program(&p);
+    //compile_program(&p);
+
+
 
     return 0;
 }

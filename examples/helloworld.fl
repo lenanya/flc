@@ -1,5 +1,6 @@
 fun main() {
     set(a, 69);
     putchar(a);
+    putchar(10);
     ret(0);
 }
