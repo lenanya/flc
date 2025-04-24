@@ -1,6 +1,29 @@
 fun main() {
-    set(a, 69);
-    putchar(a);
-    putchar(10);
+    set(h,72);
+    set(e,101);
+    set(l,108);
+    set(l,108);
+    set(o,111);
+    set(space,32);
+    set(W,87);
+    set(o,111);
+    set(r,114);
+    set(l,108);
+    set(d,100);
+    set(excl,33);
+    set(nl, 10);
+    putchar(h);
+    putchar(e);
+    putchar(l);
+    putchar(l);
+    putchar(o);
+    putchar(space);
+    putchar(W);
+    putchar(o);
+    putchar(r);
+    putchar(l);
+    putchar(d);
+    putchar(excl);
+    putchar(nl);
     ret(0);
 }

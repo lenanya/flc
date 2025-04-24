@@ -1,5 +1,6 @@
 #include "flc.h"
 #include "parser.h"
+#include <syscall.h>
 
 void compile_time_error(char* error) {
     fprintf(stderr, "[ERROR] %s\n", error);
@@ -11,8 +12,8 @@ void compile_time_error_and_exit(char* error) {
 }
 
 // builtin function to set local variables :3
-int f_set(Expression expr, FunctionVariables* func_vars) {
-    if (!expr.func_args.count == 2) {
+int f_set(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
+    if (!(expr.func_args.count == 2)) {
         compile_time_error("Too many arguments in call to `set`");
         return 1;
     }
@@ -28,9 +29,17 @@ int f_set(Expression expr, FunctionVariables* func_vars) {
 
     da_append(func_vars, var);
 
-    printf("    #Creating variable `%s`\n", var.name);
-    printf("    sub $8, %rsp\n");
-    printf("    movq $%d, (%rsp)\n", expr.func_args.items[1].expression_value.intlit);
+    fprintf(outfile, "    #Creating variable `%s`\n", var.name);
+    fprintf(outfile, "    sub $8, %rsp\n");
+    fprintf(outfile, "    movq $%d, (%rsp)\n", expr.func_args.items[1].expression_value.intlit);
+    return 0;
+}
+
+int f_ret(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
+    fprintf(outfile, "    add $%zu, %rsp\n", func_vars->count * 8);
+    fprintf(outfile, "    pop %rbp\n");
+    fprintf(outfile, "    movq $0, %rax\n");
+    fprintf(outfile, "    ret\n");
     return 0;
 }
 
@@ -39,7 +48,9 @@ char* registers[] = {
     "%rsi",
 };
 
-int f_ext(Expression expr, FunctionVariables* func_vars) {
+// TODO: add all registers
+
+int f_ext(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
     char* function_name = expr.expression_value.function_name;
     for (size_t i = 0; i < expr.func_args.count; ++i) {
         switch (expr.func_args.items[i].expression_type) {
@@ -50,30 +61,32 @@ int f_ext(Expression expr, FunctionVariables* func_vars) {
                     fprintf(stderr, "Calling to external function `%s` with undefined variable `%s`\n", function_name, var_name);
                     return 1;
                 }
-                printf("    #loading variable `%s`\n", var_name);
+                fprintf(outfile, "    #loading variable `%s`\n", var_name);
                 if (var_idx > 0) {
-                    printf("    movq -%d(%rbp), %s\n", (var_idx + 1) * 8, registers[i]);
+                    fprintf(outfile, "    movq -%d(%rbp), %s\n", (var_idx + 1) * 8, registers[i]);
                 } else {
-                    printf("    movq -8(%rbp), %s\n", registers[i]);
+                    fprintf(outfile, "    movq -8(%rbp), %s\n", registers[i]);
                 }
                 break;
             case ET_INT_LIT:
-                printf("    movq $%d, %s\n", expr.func_args.items[i].expression_value.intlit, registers[i]);
+                fprintf(outfile, "    movq $%d, %s\n", expr.func_args.items[i].expression_value.intlit, registers[i]);
+                break;
             default:
+                fprintf(outfile, "%s\n", ET_VIS[expr.func_args.items[i].expression_type]);
                 TODO("external function args\n");
                 break;
         }
     }
-    printf("    call %s\n", function_name);
+    fprintf(outfile, "    call %s\n", function_name);
     return 0;
 }
 
-int compile_function(Function* func) {
+int compile_function(Function* func, FILE* outfile) {
     // function setup
-    printf(".globl %s\n", func->name);
-    printf("%s:\n", func->name);
-    printf("    push %rbp\n");
-    printf("    movq %rsp, %rbp\n");
+    fprintf(outfile, ".globl %s\n", func->name);
+    fprintf(outfile, "%s:\n", func->name);
+    fprintf(outfile, "    push %rbp\n");
+    fprintf(outfile, "    movq %rsp, %rbp\n");
     // function body
     FunctionVariables func_vars = {0};
     
@@ -81,102 +94,70 @@ int compile_function(Function* func) {
         switch (func->items[i].expression_type) {
             case ET_FUNCTION_CALL:
                 if (strcmp(func->items[i].expression_value.function_name, "set") == 0) {
-                    if (f_set(func->items[i], &func_vars) != 0) return 1;
+                    if (f_set(func->items[i], &func_vars, outfile) != 0) return 1;
+                } else if (strcmp(func->items[i].expression_value.function_name, "ret") == 0) {
+                    if (f_ret(func->items[i], &func_vars, outfile) != 0) return 1;
                 } else {
-                    if (f_ext(func->items[i], &func_vars) != 0) return 1;
+                    if (f_ext(func->items[i], &func_vars, outfile) != 0) return 1;
                 }
                 break; 
             default:
                 TODO("expression types\n");
         }
     }
-
-    //function cleanup
-    printf("    add $%zu, %rsp\n", func_vars.count * 8);
-    printf("    pop %rbp\n");
-    printf("    movq $0, %rax\n");
-    printf("    ret\n");
+    return 0;
 }
 
 // todo: move to string builder instead of stdout
-int compile_program(Program* program) {
+int compile_program(Program* program, FILE* outfile) {
     int main_index = program_get_function_index(program, "main");
     if (main_index < 0) {
         compile_time_error("No main function defined.");
         return 1;
     }
-    printf(".section .text\n");
+    fprintf(outfile, ".section .text\n");
     for (size_t i = 0; i < program->count; ++i) {
-        if (compile_function(&program->items[i]) != 0) return 1;
+        if (compile_function(&program->items[i], outfile) != 0) return 1;
     }
+    return 0;
 }
 
-char* sample =  "fun main() {\n"\
-                "   set(a, 69);\n"\
-                "   putchar(a);\n"\
-                "   putchar(10);\n"\
-                "   ret(0);\n"\
-                "}";
-
 int main(int argc, char** argv) {
-    //if (argc < 2) {
-    //    fprintf(stderr, "[ERROR] Need to supply .fl file");
-    //    return 1;
-    //}
-    //char* fl_file = argv[1];
-
-    Lexer lex = {0};
-    create_lexer(&lex, sample);
-    Token t = {0};
-
-    for (size_t i = 0; i < lex.tokens.count; ++i) {
-        if (lex.tokens.items[i].token_type == TT_SYMBOL) {
-            printf("SYMBOL: `%s`\n", lex.tokens.items[i].token_value.TV_symbol);
-        } else {
-            printf("%s\n", TT_VIS[lex.tokens.items[i].token_type]);
+    if (argc < 2) {
+        fprintf(stderr, "[ERROR] Need to supply .fl file");
+        return 1;
+    }
+    char* fl_file = argv[1];
+    char* outfile = "flcout.S";
+    char* executable = "flcout";
+    if (argc > 3) {
+        if (strcmp(argv[2], "-o") == 0) {
+            executable = argv[3];
+            outfile = malloc(strlen(executable) + 2);
+            sprintf(outfile, "%s.S", executable);
         }
     }
 
-    expect_token_type(get_token(&lex), TT_INT_LIT);
+    StringBuilder sb = {0};
+    read_entire_file(&sb, fl_file);
+    printf("[INFO] Read file %s\n", fl_file);
 
-    // hardcoded program for now, since no lexing/parsing yet
-    //Program p = {0};
+    Lexer lex = {0};
+    create_lexer(&lex, sb.items);
+    printf("[INFO] Tokenized, %d tokens\n", lex.tokens.count);
 
-    //Function f = {0};
-    //f.name = "main";
+    Program prog = {0};
+    create_program(&prog, &lex);
+    printf("[INFO] Parsed program, Compiling...\n");
 
-    //Expression expr1 = {0};
-    //expr1.expression_type = ET_FUNCTION_CALL;
-    //expr1.expression_value.function_name = "set";
-    //Expression fe1 = {
-    //    .expression_type = ET_VARIABLE,
-    //    .expression_value.variable_name = "a",
-    //};
-    //Expression fe2 = {
-    //    .expression_type = ET_INT_LIT,
-    //    .expression_value.intlit = 69,
-    //};
+    compile_program(&prog, fopen(outfile, "w"));
 
-    //da_append(&(expr1.func_args), fe1);
-    //da_append(&(expr1.func_args), fe2);
-    //da_append(&f, expr1);
+    printf("[INFO] Assembly written to %s\n", outfile);
+    printf("[INFO] Compiling Assembly with CC\n");
 
-    //Expression expr2 = {0};
-    //expr2.expression_type = ET_FUNCTION_CALL;
-    //expr2.expression_value.function_name = "putchar";
-    //Expression fe21 = {
-    //    .expression_type = ET_VARIABLE,
-    //    .expression_value.variable_name = "a",
-    //};
-    //da_append(&(expr2.func_args), fe21);
-    //da_append(&f, expr2);
-
-
-    //da_append(&p, f);
-
-    //compile_program(&p);
-
-
+    char* cmd = malloc(1024);
+    sprintf(cmd, "cc -no-pie %s -o %s\n", outfile, executable);
+    printf("run this to get an executable till i figure out how to run stuff:\n\n%s\n\n", cmd);
 
     return 0;
 }

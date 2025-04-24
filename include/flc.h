@@ -13,6 +13,12 @@ typedef enum ExpressionType {
     ET_VARIABLE,
 } ExpressionType;
 
+const char* ET_VIS[] = {
+    "ET_INT_LIT",
+    "ET_FUNCTION_CALL",
+    "ET_VARIABLE",
+};
+
 typedef union ExpressionValue {
     int64_t intlit;
     char* function_name;
@@ -104,5 +110,25 @@ typedef struct StringBuilder {
 
 #define da_free(da) free((da).items)
 #define sb_append_null(da) da_append((da), '\0');
+
+void read_entire_file(StringBuilder* sb, char* file_path) {
+    FILE* file = fopen(file_path, "r");
+    if (!file) {
+        fprintf(stderr, "[ERROR]: Could not open file %s\n", file_path);
+        exit(1);
+    }
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    size_t new_count = sb->count + size;
+    if (new_count > sb->capacity) {
+        sb->items = realloc(sb->items, new_count);
+        sb->capacity = new_count;
+    }
+    fread(sb->items + sb->count, size, 1, file);
+    fclose(file);
+    sb->count = new_count;
+    sb_append_null(sb);
+}   
 
 #endif // INCLUDE_FLC_H

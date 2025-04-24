@@ -40,18 +40,32 @@ typedef struct TokenList
 
 typedef struct Lexer
 {
-    size_t index;
+    int index;
     TokenList tokens;
 } Lexer;
 
-Token get_token(Lexer *lex)
+void get_token(Lexer* lex, Token* t)
 {
-    if (lex->index++ > lex->tokens.count)
+    if (lex->index > lex->tokens.count)
     {
         fprintf(stderr, "[ERROR]: Lexer ran out of tokens\n");
         exit(1);
     }
-    Token t = {0};
+    t->token_type = lex->tokens.items[lex->index].token_type;
+    t->token_value = lex->tokens.items[lex->index].token_value;
+
+    //printf("[TOKENDUMP] Got %d:%s\n", lex->index, TT_VIS[t->token_type]);
+
+    lex->index++;
+}
+
+Token next_token(Lexer* lex) {
+    if (lex->index > lex->tokens.count)
+    {
+        fprintf(stderr, "[ERROR]: Lexer ran out of tokens\n");
+        exit(1);
+    }
+    Token t;
     t.token_type = lex->tokens.items[lex->index].token_type;
     t.token_value = lex->tokens.items[lex->index].token_value;
     return t;
@@ -66,7 +80,7 @@ void expect_error(Token t, TokenType tt)
         sprintf(received_type, "%s", "EOF");
         break;
     case TT_INT_LIT:
-        sprintf(received_type, "Int literal: %d", t.token_value.TV_int_lit);
+        sprintf(received_type, "Int literal: %ld", t.token_value.TV_int_lit);
         break;
     case TT_PUNCTUATION:
         sprintf(received_type, "Punctuation: '%c'", t.token_value.TV_punct);
@@ -92,14 +106,10 @@ void expect_error(Token t, TokenType tt)
     exit(1);
 }
 
-bool expect_token_type(Token t, TokenType tt)
+void expect_token_type(Token t, TokenType tt)
 {
-    if (t.token_type != tt)
-    {
-        expect_error(t, tt);
-        return false;
-    }
-    return true;
+    if (t.token_type != tt) expect_error(t, tt);
+
 }
 
 char PUNCTUATION[] = {
@@ -190,12 +200,18 @@ Token symbol_token(char* s) {
     };
 }
 
+Token eof_token() {
+    return (Token) {
+        .token_type = TT_EOF,
+    };
+}
+
 bool is_int_lit(char* str) {
     for (size_t i = 0; i < strlen(str); ++i) if (!isdigit(str[i])) return false;
     return true;
 }
 
-void tokenize(Lexer *lex, char *source)
+void tokenize(Lexer *lex, char* source)
 {
     size_t index = 0;
     StringBuilder sb = {0};
@@ -219,9 +235,31 @@ void tokenize(Lexer *lex, char *source)
             da_append(&lex->tokens, symbol_token(tokenstrings.items[i]));
         }
     }
+    da_append(&lex->tokens, eof_token());
 }
 
-void create_lexer(Lexer *lex, char *source)
+void dump_tokens(Lexer* lex) {
+    printf("[TOKENS] -----------\n");
+    for (size_t i = 0; i < lex->tokens.count; ++i) {
+        switch (lex->tokens.items[i].token_type) {
+            case TT_SYMBOL:
+                printf("    [SYMBOL] : %ld : \"%s\"\n", i, lex->tokens.items[i].token_value.TV_symbol);
+                break;
+            case TT_INT_LIT:
+                printf("    [INT]    : %ld : %"PRId64"\n", i, lex->tokens.items[i].token_value.TV_int_lit);
+                break;
+            case TT_PUNCTUATION:
+                printf("    [PUNCT]  : %ld : '%c'\n", i, lex->tokens.items[i].token_value.TV_punct);
+                break;
+            case TT_EOF:
+                printf("    [EOF]\n");
+                break;
+        }
+    }
+    printf("----------- [/TOKENS]\n");
+}
+
+void create_lexer(Lexer* lex, char* source)
 {
     lex->index = 0;
     tokenize(lex, source);
