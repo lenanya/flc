@@ -46,6 +46,10 @@ int f_ret(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
 char* registers[] = {
     "%rdi",
     "%rsi",
+    "%rdx",
+    "%rcx",
+    "%r8",
+    "%r9",
 };
 
 // TODO: add all registers
@@ -150,7 +154,7 @@ int main(int argc, char** argv) {
     create_program(&prog, &lex);
     printf("[INFO] Parsed program, Compiling...\n");
 
-    compile_program(&prog, fopen(outfile, "w"));
+    if (compile_program(&prog, fopen(outfile, "w"))) return 1;
 
     printf("[INFO] Assembly written to %s\n", outfile);
     printf("[INFO] Compiling Assembly with CC\n");
