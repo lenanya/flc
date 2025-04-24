@@ -15,7 +15,7 @@ void parse_function(Function* f, Lexer* lex, Token* t) {
         get_token(lex, t);
         expect_token_type(*t, TT_SYMBOL);
         expr.expression_value.function_name = t->token_value.TV_symbol;
-        get_token(lex, t); // any type is fine here so no expect
+        get_token(lex, t);
         expect_token_type(*t, TT_PUNCTUATION);
         if (t->token_value.TV_punct != '(') error("`(`", "sumn else"); // TODO FIX
 
@@ -32,7 +32,7 @@ void parse_function(Function* f, Lexer* lex, Token* t) {
                     sb_append_null(&sb);
                     if (t->token_value.TV_punct == ')') {
                         args = false; 
-                        goto endofargs;
+                        goto endofargs; // oh nooo, scary goto
                     }
                     if (t->token_value.TV_punct != ',') error("`,`", sb.items);
                     break;
@@ -150,7 +150,7 @@ void create_program(Program* p, Lexer* lex) {
 
         da_append(p, f);
 
-        done = true; // TODO: only a single function rn
+        if (next_token(lex).token_type == TT_EOF) done = true;
     }
 }
 

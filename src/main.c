@@ -28,8 +28,6 @@ int f_set(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
     };
 
     da_append(func_vars, var);
-
-    fprintf(outfile, "    #Creating variable `%s`\n", var.name);
     fprintf(outfile, "    sub $8, %rsp\n");
     fprintf(outfile, "    movq $%d, (%rsp)\n", expr.func_args.items[1].expression_value.intlit);
     return 0;
@@ -65,7 +63,6 @@ int f_ext(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
                     fprintf(stderr, "Calling to external function `%s` with undefined variable `%s`\n", function_name, var_name);
                     return 1;
                 }
-                fprintf(outfile, "    #loading variable `%s`\n", var_name);
                 if (var_idx > 0) {
                     fprintf(outfile, "    movq -%d(%rbp), %s\n", (var_idx + 1) * 8, registers[i]);
                 } else {
@@ -76,7 +73,7 @@ int f_ext(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
                 fprintf(outfile, "    movq $%d, %s\n", expr.func_args.items[i].expression_value.intlit, registers[i]);
                 break;
             default:
-                fprintf(outfile, "%s\n", ET_VIS[expr.func_args.items[i].expression_type]);
+                printf("%s\n", ET_VIS[expr.func_args.items[i].expression_type]);
                 TODO("external function args\n");
                 break;
         }
@@ -159,9 +156,14 @@ int main(int argc, char** argv) {
     printf("[INFO] Assembly written to %s\n", outfile);
     printf("[INFO] Compiling Assembly with CC\n");
 
-    char* cmd = malloc(1024);
-    sprintf(cmd, "cc -no-pie %s -o %s\n", outfile, executable);
-    printf("run this to get an executable till i figure out how to run stuff:\n\n%s\n\n", cmd);
+    StringBuilder cmd = {0};
+    sb_append_cstr(&cmd, "cc -no-pie ");
+    sb_append_cstr(&cmd, outfile);
+    sb_append_cstr(&cmd, " -o ");
+    sb_append_cstr(&cmd, executable);
+    sb_append_cstr(&cmd, "\n\0");
+
+    printf("run this to get an executable till i figure out how to run stuff:\n\n%s\n\n", cmd.items);
 
     return 0;
 }

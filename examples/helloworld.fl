@@ -27,3 +27,7 @@ fun main() {
     putchar(nl);
     ret(0);
 }
+
+fun test() {
+    ret(0);
+}

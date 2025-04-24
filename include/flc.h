@@ -107,7 +107,6 @@ typedef struct StringBuilder {
 } StringBuilder;
  
 #define array_len(xs) (sizeof(xs)/sizeof(xs[0]))
-
 #define da_free(da) free((da).items)
 #define sb_append_null(da) da_append((da), '\0');
 
@@ -130,5 +129,12 @@ void read_entire_file(StringBuilder* sb, char* file_path) {
     sb->count = new_count;
     sb_append_null(sb);
 }   
+
+void sb_append_cstr(StringBuilder* sb, char* cstr) {
+    int len = strlen(cstr);
+    for (size_t i = 0; i < len; ++i) {
+        da_append(sb, cstr[i]);
+    }
+}
 
 #endif // INCLUDE_FLC_H
