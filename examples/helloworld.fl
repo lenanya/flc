@@ -1,6 +1,6 @@
 fun main() {
-    set(variable, 69);
-    putchar(variable);
-    putchar(10); 
-    ret(0);
+  set(variable, 69);
+  putchar(variable);
+  putchar(10);
+  ret(0);
 }
