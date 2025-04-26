@@ -110,9 +110,10 @@ char PUNCTUATION[] = {
 };
 
 bool is_punct(char c) {
-	for (size_t i = 0; i < array_len(PUNCTUATION); ++i)
+	for (size_t i = 0; i < array_len(PUNCTUATION); ++i) {
 		if (c == PUNCTUATION[i])
 			return true;
+	}
 	return false;
 }
 
@@ -187,7 +188,10 @@ Token eof_token() {
 }
 
 bool is_int_lit(char* str) {
-	for (size_t i = 0; i < strlen(str); ++i) if (!isdigit(str[i])) return false;
+	for (size_t i = 0; i < strlen(str); ++i) {
+		if (!isdigit(str[i])) 
+			return false;
+	}
 	return true;
 }
 
@@ -222,15 +226,15 @@ void dump_tokens(Lexer* lex) {
 		switch (lex->tokens.items[i].token_type) {
 			case TT_SYMBOL:
 				const char* symbol = lex->tokens.items[i].token_value.TV_symbol;
-				printf("  [SYMBOL] : %ld : \"%s\"\n", i, symbol);
+				printf("  [SYMBOL]  : %ld : \"%s\"\n", i, symbol);
 				break;
 			case TT_INT_LIT:
 				int64_t int_lit = lex->tokens.items[i].token_value.TV_int_lit;
-				printf("  [INT]  : %ld : %"PRId64"\n", i, int_lit);
+				printf("  [INT]     : %ld : %"PRId64"\n", i, int_lit);
 				break;
 			case TT_PUNCTUATION:
 				char punct = lex->tokens.items[i].token_value.TV_punct;
-				printf("  [PUNCT]  : %ld : '%c'\n", i, punct);
+				printf("  [PUNCT]   : %ld : '%c'\n", i, punct);
 				break;
 			case TT_EOF:
 				printf("  [EOF]\n");

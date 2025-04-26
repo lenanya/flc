@@ -111,11 +111,14 @@ int compile_function(Function* func, FILE* outfile) {
 			case ET_FUNCTION_CALL:
 				char* function_name = curr_expr.expression_value.function_name;
 				if (strcmp(function_name, "set") == 0) {
-					if (f_set(curr_expr, &func_vars, outfile) != 0) return 1;
+					if (f_set(curr_expr, &func_vars, outfile) != 0) 
+						return 1;
 				} else if (strcmp(function_name, "ret") == 0) {
-					if (f_ret(curr_expr, &func_vars, outfile) != 0) return 1;
+					if (f_ret(curr_expr, &func_vars, outfile) != 0) 
+						return 1;
 				} else {
-					if (f_ext(curr_expr, &func_vars, outfile) != 0) return 1;
+					if (f_ext(curr_expr, &func_vars, outfile) != 0) 
+						return 1;
 				}
 				break;
 			default:
@@ -134,7 +137,8 @@ int compile_program(Program* program, FILE* outfile) {
 	}
 	fprintf(outfile, ".section .text\n");
 	for (size_t i = 0; i < program->count; ++i) {
-		if (compile_function(&program->items[i], outfile) != 0) return 1;
+		if (compile_function(&program->items[i], outfile) != 0) 
+			return 1;
 	}
 	return 0;
 }
@@ -163,11 +167,14 @@ int main(int argc, char** argv) {
 	create_lexer(&lex, sb.items);
 	printf("[INFO] Tokenized, %d tokens\n", lex.tokens.count);
 
+	dump_tokens(&lex);
+
 	Program prog = {0};
 	create_program(&prog, &lex);
 	printf("[INFO] Parsed program, Compiling...\n");
 
-	if (compile_program(&prog, fopen(outfile, "w"))) return 1;
+	if (compile_program(&prog, fopen(outfile, "w"))) 
+		return 1;
 
 	printf("[INFO] Assembly written to %s\n", outfile);
 	printf("[INFO] Compiling Assembly with CC\n");
