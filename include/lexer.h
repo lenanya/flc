@@ -3,8 +3,7 @@
 #include "flc.h"
 #include <ctype.h>
 
-typedef enum TokenType
-{
+typedef enum TokenType {
     TT_INT_LIT,
     TT_SYMBOL,
     TT_PUNCTUATION,
@@ -18,50 +17,41 @@ char* TT_VIS[] = {
     "TT_EOF",
 };
 
-typedef union TokenValue
-{
+typedef union TokenValue {
     int64_t TV_int_lit;
     char *TV_symbol;
     char TV_punct;
 } TokenValue;
 
-typedef struct Token
-{
+typedef struct Token {
     TokenType token_type;
     TokenValue token_value;
 } Token;
 
-typedef struct TokenList
-{
+typedef struct TokenList {
     Token *items;
     size_t count;
     size_t capacity;
 } TokenList;
 
-typedef struct Lexer
-{
+typedef struct Lexer {
     int index;
     TokenList tokens;
 } Lexer;
 
-void get_token(Lexer* lex, Token* t)
-{
-    if (lex->index > lex->tokens.count)
-    {
+void get_token(Lexer* lex, Token* t) {
+    if (lex->index > lex->tokens.count) {
         fprintf(stderr, "[ERROR]: Lexer ran out of tokens\n");
         exit(1);
     }
     t->token_type = lex->tokens.items[lex->index].token_type;
     t->token_value = lex->tokens.items[lex->index].token_value;
 
-    //printf("[TOKENDUMP] Got %d:%s\n", lex->index, TT_VIS[t->token_type]);
-
     lex->index++;
 }
 
 Token next_token(Lexer* lex) {
-    if (lex->index > lex->tokens.count)
-    {
+    if (lex->index > lex->tokens.count) {
         fprintf(stderr, "[ERROR]: Lexer ran out of tokens\n");
         exit(1);
     }
@@ -71,44 +61,42 @@ Token next_token(Lexer* lex) {
     return t;
 }
 
-void expect_error(Token t, TokenType tt)
-{
-    char received_type[256];
-    switch (t.token_type)
-    {
-    case TT_EOF:
-        sprintf(received_type, "%s", "EOF");
-        break;
-    case TT_INT_LIT:
-        sprintf(received_type, "Int literal: %ld", t.token_value.TV_int_lit);
-        break;
-    case TT_PUNCTUATION:
-        sprintf(received_type, "Punctuation: '%c'", t.token_value.TV_punct);
-        break;
-    case TT_SYMBOL:
-        sprintf(received_type, "Symbol: \"%s\"", t.token_value.TV_symbol);
+void expect_error(Token t, TokenType tt) {
+    char recd_type[256];
+    switch (t.token_type) {
+        case TT_EOF:
+            sprintf(recd_type, "%s", "EOF");
+            break;
+        case TT_INT_LIT:
+            sprintf(recd_type, "Int literal: %ld", t.token_value.TV_int_lit);
+            break;
+        case TT_PUNCTUATION:
+            sprintf(recd_type, "Punctuation: '%c'", t.token_value.TV_punct);
+            break;
+        case TT_SYMBOL:
+            sprintf(recd_type, "Symbol: \"%s\"", t.token_value.TV_symbol);
+            break;
     }
-    switch (tt)
-    {
-    case TT_EOF:
-        fprintf(stderr, "[ERROR] Expected token of type EOF got `%s`\n", received_type);
-        break;
-    case TT_INT_LIT:
-        fprintf(stderr, "[ERROR] Expected Int literal got `%s`\n", received_type);
-        break;
-    case TT_PUNCTUATION:
-        fprintf(stderr, "[ERROR] Expected Punctuation got `%s`\n", received_type);
-        break;
-    case TT_SYMBOL:
-        fprintf(stderr, "[ERROR] Expected Symbol got `%s`\n", received_type);
-        break;
+    switch (tt) {
+        case TT_EOF:
+            fprintf(stderr, "[ERROR] Expected token of type EOF got `%s`\n", recd_type);
+            break;
+        case TT_INT_LIT:
+            fprintf(stderr, "[ERROR] Expected Int literal got `%s`\n", recd_type);
+            break;
+        case TT_PUNCTUATION:
+            fprintf(stderr, "[ERROR] Expected Punctuation got `%s`\n", recd_type);
+            break;
+        case TT_SYMBOL:
+            fprintf(stderr, "[ERROR] Expected Symbol got `%s`\n", recd_type);
+            break;
     }
     exit(1);
 }
 
-void expect_token_type(Token t, TokenType tt)
-{
-    if (t.token_type != tt) expect_error(t, tt);
+void expect_token_type(Token t, TokenType tt) {
+    if (t.token_type != tt) 
+        expect_error(t, tt);
 
 }
 
@@ -121,32 +109,27 @@ char PUNCTUATION[] = {
     '}',
 };
 
-bool is_punct(char c)
-{
+bool is_punct(char c) {
     for (size_t i = 0; i < array_len(PUNCTUATION); ++i)
         if (c == PUNCTUATION[i])
             return true;
     return false;
 }
 
-static char* get_tokenstring(char* string, size_t* index, StringBuilder* result)
-{
+static char* get_tokenstring(char* string, size_t* index, StringBuilder* result) {
     result->count = 0;
-    while ((*index) < strlen(string) && isspace(string[*index]))
-    {
+    while ((*index) < strlen(string) && isspace(string[*index])) {
         (*index)++;
     }
 
-    if ((*index) < strlen(string) && is_punct(string[*index]))
-    {
+    if ((*index) < strlen(string) && is_punct(string[*index])) {
         da_append(result, string[*index]);
         sb_append_null(result);
         (*index)++;
         return result->items;
     }
 
-    while ((*index) < strlen(string) && !is_punct(string[*index]) && !isspace(string[*index]))
-    {
+    while ((*index) < strlen(string) && !is_punct(string[*index]) && !isspace(string[*index])) {
         da_append(result, string[*index]);
         (*index)++;
     }
@@ -154,8 +137,7 @@ static char* get_tokenstring(char* string, size_t* index, StringBuilder* result)
     return result->items;
 }
 
-typedef struct TokenStrings
-{
+typedef struct TokenStrings {
     char** items;
     size_t count;
     size_t capacity;
@@ -169,10 +151,8 @@ char *INTERNAL[] = {
     "fun",
 };
 
-bool is_internal(char *str)
-{
-    for (size_t i = 0; i < array_len(INTERNAL); ++i)
-    {
+bool is_internal(char *str) {
+    for (size_t i = 0; i < array_len(INTERNAL); ++i) {
         if (strcmp(str, INTERNAL[i]) == 0)
             return true;
     }
@@ -211,14 +191,12 @@ bool is_int_lit(char* str) {
     return true;
 }
 
-void tokenize(Lexer *lex, char* source)
-{
+void tokenize(Lexer *lex, char* source) {
     size_t index = 0;
     StringBuilder sb = {0};
     TokenStrings tokenstrings = {0};
     size_t source_length = strlen(source);
-    while (index < source_length)
-    {
+    while (index < source_length) {
         char* tokstr = get_tokenstring(source, &index, &sb);
         char* heap_string = strdup(tokstr);
         da_append(&tokenstrings, heap_string);
@@ -259,8 +237,7 @@ void dump_tokens(Lexer* lex) {
     printf("----------- [/TOKENS]\n");
 }
 
-void create_lexer(Lexer* lex, char* source)
-{
+void create_lexer(Lexer* lex, char* source) {
     lex->index = 0;
     tokenize(lex, source);
 }

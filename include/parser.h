@@ -17,7 +17,8 @@ void parse_function(Function* f, Lexer* lex, Token* t) {
         expr.expression_value.function_name = t->token_value.TV_symbol;
         get_token(lex, t);
         expect_token_type(*t, TT_PUNCTUATION);
-        if (t->token_value.TV_punct != '(') error("`(`", "sumn else"); // TODO FIX
+        if (t->token_value.TV_punct != '(') 
+            error("`(`", "sumn else"); // TODO: FIX
 
         bool args = true;
         Token closingparenmaybe = next_token(lex);
@@ -26,15 +27,15 @@ void parse_function(Function* f, Lexer* lex, Token* t) {
             switch (t->token_type) {
                 case TT_EOF:
                     error("anything but EOF", "EOF"); // TODO FIX
+                    break;
                 case TT_PUNCTUATION:
                     StringBuilder sb = {0};
                     da_append(&sb, t->token_value.TV_punct);
                     sb_append_null(&sb);
-                    if (t->token_value.TV_punct == ')') {
-                        args = false; 
+                    if (t->token_value.TV_punct == ')')
                         goto endofargs; // oh nooo, scary goto
-                    }
-                    if (t->token_value.TV_punct != ',') error("`,`", sb.items);
+                    if (t->token_value.TV_punct != ',') 
+                        error("`,`", sb.items);
                     break;
                 case TT_INT_LIT:
                     Expression intlit = {
@@ -45,17 +46,20 @@ void parse_function(Function* f, Lexer* lex, Token* t) {
                     break;
                 case TT_SYMBOL:
                     Token next = next_token(lex);
-                    if (next.token_type != TT_PUNCTUATION) error("`,`, `(`, or `)`", TT_VIS[next.token_type]);
+                    if (next.token_type != TT_PUNCTUATION)
+                        error("`,`, `(`, or `)`", TT_VIS[next.token_type]);
                     if (next.token_value.TV_punct == '(') {
+                        const char* func_name = t->token_value.TV_symbol;
                         Expression funcall = {
                             .expression_type = ET_FUNCTION_CALL,
-                            .expression_value.function_name = t->token_value.TV_symbol,
+                            .expression_value.function_name = func_name,
                         };
                         TODO("Implement function calls in function calls");
                     } else {
+                        const char* var_name = t->token_value.TV_symbol;
                         Expression var = {
                             .expression_type = ET_VARIABLE,
-                            .expression_value.variable_name = t->token_value.TV_symbol,
+                            .expression_value.variable_name = var_name,
                         };
                         da_append(&(expr.func_args), var);
                     }
@@ -72,9 +76,12 @@ void parse_function(Function* f, Lexer* lex, Token* t) {
 endofargs:
         get_token(lex, t);
         if (t->token_type != TT_PUNCTUATION) {
-            if (t->token_type == TT_INT_LIT) error("`;`", "Integer");
-            else if (t->token_type == TT_SYMBOL) error("`;`", t->token_value.TV_symbol);
-            else error(";", "EOF");
+            if (t->token_type == TT_INT_LIT) 
+                error("`;`", "Integer");
+            else if (t->token_type == TT_SYMBOL) 
+                error("`;`", t->token_value.TV_symbol);
+            else 
+                error(";", "EOF");
         } 
         if (t->token_value.TV_punct != ';') {
             StringBuilder sb = {0};
@@ -86,7 +93,9 @@ endofargs:
         da_append(f, expr);
 
         Token lastmaybe = next_token(lex);
-        if (lastmaybe.token_type == TT_PUNCTUATION && lastmaybe.token_value.TV_punct == '}') done = true;
+        if (lastmaybe.token_type == TT_PUNCTUATION)
+            if (lastmaybe.token_value.TV_punct == '}') 
+                done = true;
     }
 }
 

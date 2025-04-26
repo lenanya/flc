@@ -28,16 +28,17 @@ int f_set(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
     };
 
     da_append(func_vars, var);
-    fprintf(outfile, "    sub $8, %rsp\n");
-    fprintf(outfile, "    movq $%d, (%rsp)\n", expr.func_args.items[1].expression_value.intlit);
+    fprintf(outfile, "\tsub $8, %rsp\n");
+    int64_t value = expr.func_args.items[1].expression_value.intlit;
+    fprintf(outfile, "\tmovq $%d, (%rsp)\n", value);
     return 0;
 }
 
 int f_ret(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
-    fprintf(outfile, "    add $%zu, %rsp\n", func_vars->count * 8);
-    fprintf(outfile, "    pop %rbp\n");
-    fprintf(outfile, "    movq $0, %rax\n");
-    fprintf(outfile, "    ret\n");
+    fprintf(outfile, "\tadd $%zu, %rsp\n", func_vars->count * 8);
+    fprintf(outfile, "\tpop %rbp\n");
+    fprintf(outfile, "\tmovq $0, %rax\n");
+    fprintf(outfile, "\tret\n");
     return 0;
 }
 
@@ -52,33 +53,45 @@ char* registers[] = {
 
 // TODO: add all registers
 
+void f_ext_undef_var(char* func_name, char* var_name) {
+    fprintf(stderr, 
+            "Calling to external function `%s` with undefined variable `%s`\n", 
+            func_name, 
+            var_name
+    );
+}
+
 int f_ext(Expression expr, FunctionVariables* func_vars, FILE* outfile) {
     char* function_name = expr.expression_value.function_name;
     for (size_t i = 0; i < expr.func_args.count; ++i) {
-        switch (expr.func_args.items[i].expression_type) {
+        Expression curr_expr = expr.func_args.items[i];
+        switch (curr_expr.expression_type) {
             case ET_VARIABLE: 
-                char* var_name = expr.func_args.items[i].expression_value.variable_name;
+                char* var_name = curr_expr.expression_value.variable_name;
                 int var_idx = variable_get_index(func_vars, var_name);
                 if (var_idx < 0) {
-                    fprintf(stderr, "Calling to external function `%s` with undefined variable `%s`\n", function_name, var_name);
+                    f_ext_undef_var(function_name, var_name);
                     return 1;
                 }
                 if (var_idx > 0) {
-                    fprintf(outfile, "    movq -%d(%rbp), %s\n", (var_idx + 1) * 8, registers[i]);
+                    size_t offset = (var_idx + 1) * 8;
+                    char* reg = registers[i];
+                    fprintf(outfile, "\tmovq -%d(%rbp), %s\n", offset, reg);
                 } else {
-                    fprintf(outfile, "    movq -8(%rbp), %s\n", registers[i]);
+                    fprintf(outfile, "\tmovq -8(%rbp), %s\n", registers[i]);
                 }
                 break;
             case ET_INT_LIT:
-                fprintf(outfile, "    movq $%d, %s\n", expr.func_args.items[i].expression_value.intlit, registers[i]);
+                int64_t int_lit = curr_expr.expression_value.intlit;
+                fprintf(outfile, "\tmovq $%d, %s\n", int_lit, registers[i]);
                 break;
             default:
-                printf("%s\n", ET_VIS[expr.func_args.items[i].expression_type]);
+                printf("%s\n", ET_VIS[curr_expr.expression_type]);
                 TODO("external function args\n");
                 break;
         }
     }
-    fprintf(outfile, "    call %s\n", function_name);
+    fprintf(outfile, "\tcall %s\n", function_name);
     return 0;
 }
 
@@ -86,20 +99,22 @@ int compile_function(Function* func, FILE* outfile) {
     // function setup
     fprintf(outfile, ".globl %s\n", func->name);
     fprintf(outfile, "%s:\n", func->name);
-    fprintf(outfile, "    push %rbp\n");
-    fprintf(outfile, "    movq %rsp, %rbp\n");
+    fprintf(outfile, "\tpush %rbp\n");
+    fprintf(outfile, "\tmovq %rsp, %rbp\n");
     // function body
     FunctionVariables func_vars = {0};
     
     for (size_t i = 0; i < func->count; ++i) {
-        switch (func->items[i].expression_type) {
+        Expression curr_expr = func->items[i];
+        switch (curr_expr.expression_type) {
             case ET_FUNCTION_CALL:
-                if (strcmp(func->items[i].expression_value.function_name, "set") == 0) {
-                    if (f_set(func->items[i], &func_vars, outfile) != 0) return 1;
-                } else if (strcmp(func->items[i].expression_value.function_name, "ret") == 0) {
-                    if (f_ret(func->items[i], &func_vars, outfile) != 0) return 1;
+                char* function_name = curr_expr.expression_value.function_name;
+                if (strcmp(function_name, "set") == 0) {
+                    if (f_set(curr_expr, &func_vars, outfile) != 0) return 1;
+                } else if (strcmp(function_name, "ret") == 0) {
+                    if (f_ret(curr_expr, &func_vars, outfile) != 0) return 1;
                 } else {
-                    if (f_ext(func->items[i], &func_vars, outfile) != 0) return 1;
+                    if (f_ext(curr_expr, &func_vars, outfile) != 0) return 1;
                 }
                 break; 
             default:
@@ -163,7 +178,7 @@ int main(int argc, char** argv) {
     sb_append_cstr(&cmd, executable);
     sb_append_cstr(&cmd, "\n\0");
 
-    printf("run this to get an executable till i figure out how to run stuff:\n\n%s\n\n", cmd.items);
+    printf("run this to get an executable:\n\n%s\n\n", cmd.items);
 
     return 0;
 }
